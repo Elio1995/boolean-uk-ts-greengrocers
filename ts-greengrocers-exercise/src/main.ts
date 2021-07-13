@@ -2,6 +2,9 @@ import './style.css'
 import './styles/index.css'
 import './styles/index.css'
 
+
+
+
 type Product = {
   id: string;
   name: string;
@@ -13,7 +16,7 @@ type CartItem = {
   id: string;
   quantity: number;
 };
-let state: { products: Product[]; cartItems: CartItem[] } = {
+let state: { products: Product[]; inCart: CartItem[] } = {
   products: [
     {
       id: "001-beetroot",
@@ -78,136 +81,149 @@ let state: { products: Product[]; cartItems: CartItem[] } = {
     },
   ],
 
-  cartItems: [],
+  inCart: [],
 };
 
-function renderAllProducts() {
-  for (const product of state.products) {
-    let productLi = renderProduct(product);
 
-    let itemUl = document.querySelector(".store--item-list");
-    itemUl?.append(productLi);
+
+const itemList = document.querySelector(".item-list.store--item-list")
+const cartList = document.querySelector(".item-list.cart--item-list")
+const totalNumber = document.querySelector(".total-number")
+
+
+function renderProducts() {
+  if (itemList===null) return
+  for (const fruit of state.products) {
+    const listEl = createListEl(fruit)
+    itemList.append(listEl)
   }
 }
 
-function renderProduct(product: {
-  id: string;
-  name: string;
-  price: number;
-  type: string;
-}) {
-  let productLi = document.createElement("li");
+function addProductToCart(productItem: Product[]) {
+  
 
-  let productImgDiv = document.createElement("div");
-  productImgDiv.setAttribute("class", "store--item-icon");
-
-  let productImg = document.createElement("img");
-  productImg.setAttribute("src", `assets/icons/${product.id}.svg`);
-  productImg.setAttribute("alt", product.name);
-  productImgDiv.append(productImg);
-
-  let addBtn = document.createElement("button");
-  addBtn.innerText = "Add to cart";
-
-  addBtn.addEventListener("click", function (event) {
-    event.preventDefault();
-
-    let itemIndex = checkExistCart(product);
-
-    if (itemIndex === -1) {
-      const newCartItem = addNewProductToCart(product);
-      renderCartItem(newCartItem);
-      updateTotal();
-    } else {
-      addQuantity(product.id);
+  const foundItem = state.inCart.find(function (cartItem: CartItem) {
+    return productItem.id === cartItem.productId
+  })
+  if (foundItem) {
+    ++foundItem.quantity
+    foundItem.productPrice = foundItem.quantity * productItem.price
+  } else {
+    const inCartInfo = {
+      productId: productItem.id,
+      quantity: 1,
+      productPrice: productItem.price,
+      name: productItem.name,
+      img: productItem.img
     }
-  });
+    state.inCart.push(inCartInfo)
+  }
 
-  productLi.append(productImgDiv, addBtn);
-  return productLi;
+
 }
 
 
-function addQuantity(id: string) {
-  let updatedCartItem = state.cartItems.find(function (item) {
-    return item.id === id;
-  });
+function createListEl(item: any) {
+  const listEl = document.createElement("li")
+  const imgEl = document.createElement("img")
+  imgEl.setAttribute("src", item.img)
+  imgEl.setAttribute("alt", item.name)
+  const cartBtn = document.createElement("button")
+  cartBtn.innerText = `Add to Basket`
 
-  if (updatedCartItem) {
-    updatedCartItem.quantity++;
-    updateCartItem(updatedCartItem);
+
+
+  listEl.append(imgEl, cartBtn)
+
+  cartBtn.addEventListener("click", function () {
+    addProductToCart(item)
+    createCartItems()
+    renderTotal()
+    console.log("cart list:", state.inCart)
+  })
+  return listEl
+}
+
+
+function createCartItem(item: any) {
+  const listCartEl = document.createElement("li")
+  const imgCartEl = document.createElement("img")
+  imgCartEl.setAttribute("class", "cart--item-icon")
+  imgCartEl.setAttribute("src", item.img)
+  imgCartEl.setAttribute("alt", item.name)
+  const pCartEl = document.createElement("p")
+  pCartEl.innerText = item.name
+
+  const minusBtn = document.createElement("button")
+  minusBtn.setAttribute("class", "quantity-btn remove-btn center")
+  minusBtn.innerText = "-"
+  minusBtn.addEventListener("click", function () {
+    decreaseQuantity(item)
+    console.log("In Cart:", state.inCart)
+  })
+
+
+  const spanCartEl = document.createElement("span")
+  spanCartEl.setAttribute("class", "quantity-text center")
+  spanCartEl.innerText = item.quantity
+  const plusBtn = document.createElement("button")
+  plusBtn.setAttribute("class", "quantity-btn add-btn center")
+  plusBtn.innerText = "+"
+  plusBtn.addEventListener("click", function () {
+    const singlePrice = item.productPrice / item.quantity
+    item.quantity++
+    spanCartEl.innerText = item.quantity
+    item.productPrice = singlePrice * item.quantity
+    renderTotal()
+
+  })
+
+  listCartEl.append(imgCartEl, pCartEl, minusBtn, spanCartEl, plusBtn)
+
+  return listCartEl
+}
+
+function createCartItems() {
+  if(cartList===null) return
+  cartList.innerHTML = ""
+  for (const item of state.inCart) {
+    const listCartEl = createCartItem(item)
+    cartList.append(listCartEl)
   }
 }
 
-function minusQuantity(id: string) {
-  let updatedCartItem = state.cartItems.find(function (item) {
-    return item.id === id;
-  });
-
-  if (updatedCartItem) {
-    updatedCartItem.quantity--;
-    updateCartItem(updatedCartItem);
+function renderTotal() {
+  if(totalNumber===null) return
+  let totalPrice = 0
+  for (const cartItem of state.products) {
+    totalPrice += cartItem.price
   }
+  totalNumber.innerHTML = `£${totalPrice.toFixed(2)}`
+  console.log("total price:", totalPrice)
 }
 
-function renderAllCartItems() {
-  getServerCart().then(function (serverCart) {
-    state.cartItems = serverCart;
-
-    state.cartItems.map(renderCartItem);
-  });
+function decreaseQuantity(item: any) {
+  const singlePrice = item.productPrice / item.quantity
+  item.quantity--
+  if (item.quantity === 0) {
+    const indexToDelete = state.inCart.findIndex(function (cartItem) {
+      return item.productId === cartItem.id
+    })
+    state.inCart.splice(indexToDelete, 1)
+  } else {
+    item.productPrice = singlePrice * item.quantity
+  }
+  createCartItems()
+  renderTotal()
 }
 
-function renderCartItem(cartItem: CartItem) {
-  let cartUl = document.querySelector(".cart--item-list");
-  let cartLi = document.createElement("li");
-  cartLi.setAttribute("id", cartItem.id);
-  cartUl?.append(cartLi);
-
-  let productDetail = state.products.find(function (product) {
-    return product.id === cartItem.id;
-  });
-  if (!productDetail) return;
-  let cartItemImg = document.createElement("img");
-  cartItemImg.setAttribute("class", "cart--item-icon");
-  cartItemImg.setAttribute("src", `assets/icons/${cartItem.id}.svg`);
-  cartItemImg.setAttribute("alt", productDetail.name);
-
-  let itemName = document.createElement("p");
-  itemName.innerText = productDetail.name;
-
-  let minusBtn = document.createElement("button");
-  minusBtn.setAttribute("class", "quantity-btn remove-btn center");
-  minusBtn.innerText = "-";
-  minusBtn.addEventListener("click", function (event) {
-    event.preventDefault();
-    minusQuantity(cartItem.id);
-  });
-
-  let plusBtn = document.createElement("button");
-  plusBtn.setAttribute("class", "quantity-btn remove-btn center");
-  plusBtn.innerText = "+";
-  plusBtn.addEventListener("click", function (event) {
-    event.preventDefault();
-    addQuantity(cartItem.id);
-  });
-
-  let quantitySpan = document.createElement("span");
-  quantitySpan.setAttribute("class", "quantity-text center");
-  quantitySpan.innerText = cartItem.quantity;
-
-  cartLi.append(cartItemImg, itemName, minusBtn, quantitySpan, plusBtn);
+function increaseQuantity(item: any) {
+  const singlePrice = item.productPrice / item.quantity
+  item.quantity++
+  // spanCartEl.innerText = item.quantity
+  item.productPrice = singlePrice * item.quantity
+  renderTotal()
 }
 
-function checkExistCart(product: {
-  id: string;
-  name: string;
-  price: number;
-  type: string;
-}) {
-  const itemIndex = state.cartItems.findIndex(function (cartItem) {
-    return cartItem.id === product.id;
-  });
-
-  return itemIndex;
-}
+renderProducts()
+renderTotal()
