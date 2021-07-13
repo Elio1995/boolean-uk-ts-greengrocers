@@ -99,22 +99,21 @@ function renderProducts() {
   }
 }
 
-function addProductToCart(productItem: Product[]) {
+function addProductToCart(productItem: Product) {
   
 
   const foundItem = state.inCart.find(function (cartItem: CartItem) {
-    return productItem.id === cartItem.productId
+    return productItem.id === cartItem.id
   })
   if (foundItem) {
     ++foundItem.quantity
     foundItem.productPrice = foundItem.quantity * productItem.price
   } else {
     const inCartInfo = {
-      productId: productItem.id,
+      id: productItem.id,
       quantity: 1,
       productPrice: productItem.price,
       name: productItem.name,
-      img: productItem.img
     }
     state.inCart.push(inCartInfo)
   }
@@ -170,11 +169,12 @@ function createCartItem(item: any) {
   plusBtn.setAttribute("class", "quantity-btn add-btn center")
   plusBtn.innerText = "+"
   plusBtn.addEventListener("click", function () {
-    const singlePrice = item.productPrice / item.quantity
-    item.quantity++
-    spanCartEl.innerText = item.quantity
-    item.productPrice = singlePrice * item.quantity
-    renderTotal()
+    // const singlePrice = item.productPrice / item.quantity
+    // item.quantity++
+    // spanCartEl.innerText = item.quantity
+    // item.productPrice = singlePrice * item.quantity
+    // renderTotal()
+    increaseQuantity(item)
 
   })
 
